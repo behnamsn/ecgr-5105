@@ -14,15 +14,6 @@ https://www.kaggle.com/datasets/sampadab17/network-intrusion-detection
 
 Code Example: https://www.kaggle.com/code/ahmedbasem/99-6-accuracy-network-intrusion-detection
 
-## Questions
-
-### Does different random state helps?
-### Does it important to compare models or tuning the hyperparameters?
-### Does it matter what preprocessing to use?
-### Does it matter to do Regularization? or PCA?
-
-### compare against models Changing the parameters to have the best model
-
 ## All libraries that we use in the lab is defined here
 """
 
@@ -61,7 +52,7 @@ df_network = pd.read_csv(file_path)
 file_path='/content/drive/My Drive/Courses/Intro to ML/Project/Test_data.csv'
 df_network_test = pd.read_csv(file_path)
 
-
+## Translate categorical features to binary features
 df_network_1 = pd.DataFrame((df_network.iloc[:,1] == "tcp").replace(True,1).replace(False,0)).rename(columns={'protocol_type':'tcp_protocol'})
 df_network = pd.concat([df_network, df_network_1], axis = 1)
 df_network_2 = pd.DataFrame((df_network.iloc[:,1] == "udp").replace(True,1).replace(False,0)).rename(columns={'protocol_type':'udp_protocol'})
@@ -70,51 +61,55 @@ df_network_3 = pd.DataFrame((df_network.iloc[:,1] == "icmp").replace(True,1).rep
 df_network = pd.concat([df_network, df_network_3], axis = 1)
 df_network_4 = pd.DataFrame((df_network.iloc[:,41] == "anomaly").replace(True,1).replace(False,0)).rename(columns={'class':'class_t'})
 df_network = pd.concat([df_network, df_network_4], axis = 1)
-df_network = df_network.drop(['service','flag','protocol_type','class'],axis=1) # Not sure to keep the protocol or not
+df_network = df_network.drop(['service','flag','protocol_type','class'],axis=1)
+# Drop all features that have null values
+df_network = df_network.dropna()
 # Choose the features based on
-df_network.head(20)
+df_network.head(10)
 
 df_network.describe()
 
 """## Feature Correlation"""
 
-X = df_network.iloc[:,1:41].values
-Y = df_network.iloc[:,41].values
+#Based on the heatmap, highly correlated features are dropped to reduced the redundency
+df_network = df_network.drop(['num_root','su_attempted','root_shell','num_access_files'],axis=1)
+plt.figure(figsize=(40,30))
+sb.heatmap(df_network.corr(), annot=True)
+
+X = df_network.iloc[:,1:37].values
+Y = df_network.iloc[:,37].values
 
 """### Logistic Regression Classifier"""
 
-# K=40
-# accur = np.zeros((K,2))
-# prec = np.zeros((K,2))
-# rec = np.zeros((K,2))
-# f1 = np.zeros((K,2))
+K=36
+accur = np.zeros((K,2))
+prec = np.zeros((K,2))
+rec = np.zeros((K,2))
+f1 = np.zeros((K,2))
 
-# for i in range(K):
-#     # X = df_cancer.iloc[:,1:31].values
-#     # Y = df_cancer.iloc[:,31].values
-#     # print(i)
-#     decomposer = PCA(n_components=i+1)
-#     X_r = decomposer.fit(X).transform(X)
-#     X_train_r, X_test_r, Y_train, Y_test = train_test_split(X_r,Y, test_size=0.25, random_state = 2)
-#     sc_X = StandardScaler()
-#     X_train_r = sc_X.fit_transform(X_train_r)
-#     X_test_r = sc_X.transform(X_test_r)
-#     # classifier = svm.SVC()
-#     classifier = LogisticRegression(random_state=0, solver='lbfgs', max_iter=1000)
-#     classifier.fit(X_train_r, Y_train)
-#     Y_pred = classifier.predict(X_test_r)
-#     accur [ i, 0]=i+1
-#     accur [i,1] = metrics.accuracy_score(Y_test, Y_pred)
-#     prec [ i, 0]=i+1
-#     prec [i,1] = metrics.precision_score(Y_test, Y_pred)
-#     rec [ i, 0]=i+1
-#     rec [i,1] = metrics.recall_score(Y_test, Y_pred)
-#     f1 [ i, 0]=i+1
-#     f1 [i,1] = metrics.f1_score(Y_test, Y_pred)
+for i in range(K):
 
-# maximum_accur = max(accur[:,1])
-# print("Maximum Accuracy is:", maximum_accur)
-# print("Maximum Accuracy is at K:", accur[accur[:,1] == maximum_accur][0,0])
+    decomposer = PCA(n_components=i+1)
+    X_r = decomposer.fit(X).transform(X)
+    X_train_r, X_test_r, Y_train, Y_test = train_test_split(X_r,Y, test_size=0.25, random_state = 2)
+    sc_X = StandardScaler()
+    X_train_r = sc_X.fit_transform(X_train_r)
+    X_test_r = sc_X.transform(X_test_r)
+    classifier = LogisticRegression(random_state=0, solver='lbfgs', max_iter=1000)
+    classifier.fit(X_train_r, Y_train)
+    Y_pred = classifier.predict(X_test_r)
+    accur [ i, 0]=i+1
+    accur [i,1] = metrics.accuracy_score(Y_test, Y_pred)
+    prec [ i, 0]=i+1
+    prec [i,1] = metrics.precision_score(Y_test, Y_pred)
+    rec [ i, 0]=i+1
+    rec [i,1] = metrics.recall_score(Y_test, Y_pred)
+    f1 [ i, 0]=i+1
+    f1 [i,1] = metrics.f1_score(Y_test, Y_pred)
+
+maximum_accur = max(accur[:,1])
+print("Maximum Accuracy is:", maximum_accur)
+print("Maximum Accuracy is at K:", accur[accur[:,1] == maximum_accur][0,0])
 
 plt.plot(accur[:,0],accur[:,1])
 plt.rcParams["figure.figsize"] = (10,6)
@@ -184,6 +179,19 @@ for title, normalize in titles_options:
 
     # plt.savefig(f'fig/conf_matrix_{classifier}')
 
+X_train_r, X_test_r, Y_train, Y_test = train_test_split(X,Y, test_size=0.25, random_state = 2)
+sc_X = StandardScaler()
+X_train_r = sc_X.fit_transform(X_train_r)
+X_test_r = sc_X.transform(X_test_r)
+classifier = LogisticRegression(random_state=0, solver='lbfgs', max_iter=1000)
+classifier.fit(X_train_r, Y_train)
+Y_pred = classifier.predict(X_test_r)
+
+print("Accuracy:", metrics.accuracy_score(Y_test, Y_pred))
+print("Precision:", metrics.precision_score(Y_test,Y_pred))
+print("Recall:", metrics.recall_score(Y_test,Y_pred))
+print("F1-score:", metrics.f1_score(Y_test,Y_pred))
+
 titles_options = [
         ("Confusion matrix, without normalization", None),
         ("Normalized confusion matrix", "true"),
@@ -201,54 +209,40 @@ for title, normalize in titles_options:
     print(title)
     print(disp.confusion_matrix)
 
-X_train_r, X_test_r, Y_train, Y_test = train_test_split(X,Y, test_size=0.25, random_state = 2)
-sc_X = StandardScaler()
-X_train_r = sc_X.fit_transform(X_train_r)
-X_test_r = sc_X.transform(X_test_r)
-classifier = LogisticRegression(random_state=0, solver='lbfgs', max_iter=1000)
-classifier.fit(X_train_r, Y_train)
-Y_pred = classifier.predict(X_test_r)
-
-print("Accuracy:", metrics.accuracy_score(Y_test, Y_pred))
-print("Precision:", metrics.precision_score(Y_test,Y_pred))
-print("Recall:", metrics.recall_score(Y_test,Y_pred))
-print("F1-score:", metrics.f1_score(Y_test,Y_pred))
-
 """### Support Vector Machine (SVM) Classifier"""
 
-# K=40
-# # kern='sigmoid'
-# # kern='poly'
-# kern='linear'
-# accur = np.zeros((K,2))
-# prec = np.zeros((K,2))
-# rec = np.zeros((K,2))
-# f1 = np.zeros((K,2))
+K=36
+# kern='sigmoid'
+# kern='poly'
+kern='linear'
+accur = np.zeros((K,2))
+prec = np.zeros((K,2))
+rec = np.zeros((K,2))
+f1 = np.zeros((K,2))
 
-# for i in range(K):
+for i in range(K):
 
-#     decomposer = PCA(n_components=i+1)
-#     X_r = decomposer.fit(X).transform(X)
-#     X_train_r, X_test_r, Y_train, Y_test = train_test_split(X_r,Y, test_size=0.25, random_state = 2)
-#     sc_X = StandardScaler()
-#     X_train_r = sc_X.fit_transform(X_train_r)
-#     X_test_r = sc_X.transform(X_test_r)
-#     classifier = svm.SVC(kernel=kern)
-#     # classifier = LogisticRegression(random_state=0, solver='lbfgs', max_iter=1000)
-#     classifier.fit(X_train_r, Y_train)
-#     Y_pred = classifier.predict(X_test_r)
-#     accur [ i, 0]=i+1
-#     accur [i,1] = metrics.accuracy_score(Y_test, Y_pred)
-#     prec [ i, 0]=i+1
-#     prec [i,1] = metrics.precision_score(Y_test, Y_pred)
-#     rec [ i, 0]=i+1
-#     rec [i,1] = metrics.recall_score(Y_test, Y_pred)
-#     f1 [ i, 0]=i+1
-#     f1 [i,1] = metrics.f1_score(Y_test, Y_pred)
+    decomposer = PCA(n_components=i+1)
+    X_r = decomposer.fit(X).transform(X)
+    X_train_r, X_test_r, Y_train, Y_test = train_test_split(X_r,Y, test_size=0.25, random_state = 2)
+    sc_X = StandardScaler()
+    X_train_r = sc_X.fit_transform(X_train_r)
+    X_test_r = sc_X.transform(X_test_r)
+    classifier = svm.SVC(kernel=kern)
+    classifier.fit(X_train_r, Y_train)
+    Y_pred = classifier.predict(X_test_r)
+    accur [ i, 0]=i+1
+    accur [i,1] = metrics.accuracy_score(Y_test, Y_pred)
+    prec [ i, 0]=i+1
+    prec [i,1] = metrics.precision_score(Y_test, Y_pred)
+    rec [ i, 0]=i+1
+    rec [i,1] = metrics.recall_score(Y_test, Y_pred)
+    f1 [ i, 0]=i+1
+    f1 [i,1] = metrics.f1_score(Y_test, Y_pred)
 
-# maximum_accur = max(accur[:,1])
-# print("Maximum Accuracy is:", maximum_accur)
-# print("Maximum Accuracy is at K:", accur[accur[:,1] == maximum_accur][0,0])
+maximum_accur = max(accur[:,1])
+print("Maximum Accuracy is:", maximum_accur)
+print("Maximum Accuracy is at K:", accur[accur[:,1] == maximum_accur][0,0])
 
 plt.plot(accur[:,0],accur[:,1])
 plt.rcParams["figure.figsize"] = (10,6)
@@ -283,8 +277,8 @@ plt.title('F1-score vs Number of Number of Components (K) for SVM')
 plt.legend()
 
 K=21
-kern='sigmoid'
-# kern='poly'
+# kern='sigmoid'
+kern='poly'
 # kern='linear'
 # kern='precomputed'
 
@@ -322,8 +316,8 @@ for title, normalize in titles_options:
 
 """### SVM without PCA"""
 
-kern='sigmoid'
-# kern='poly'
+# kern='sigmoid'
+kern='poly'
 # kern='linear'
 
 X_train_r, X_test_r, Y_train, Y_test = train_test_split(X,Y, test_size=0.25, random_state = 2)
@@ -358,7 +352,7 @@ for title, normalize in titles_options:
 
 """### Naive Bayes (NB) Classifier"""
 
-K=40
+K=36
 
 accur = np.zeros((K,2))
 prec = np.zeros((K,2))
@@ -486,35 +480,3 @@ for title, normalize in titles_options:
     disp.ax_.set_title(title)
     print(title)
     print(disp.confusion_matrix)
-
-# plt.plot(accur[:,0],accur[:,1])
-# plt.rcParams["figure.figsize"] = (10,6)
-# plt.grid(1)
-# plt.xlabel('Number of Components (K)')
-# plt.ylabel('Accuracy')
-# plt.title('Accuracy vs Number of Components (K)')
-# plt.legend()
-
-# plt.plot(prec[:,0],prec[:,1])
-# plt.rcParams["figure.figsize"] = (10,6)
-# plt.grid(1)
-# plt.xlabel('Number of Components (K)')
-# plt.ylabel('Precision')
-# plt.title('Precision vs Number of Components (K)')
-# plt.legend()
-
-# plt.plot(rec[:,0],rec[:,1])
-# plt.rcParams["figure.figsize"] = (10,6)
-# plt.grid(1)
-# plt.xlabel('Number of Number of Components (K)')
-# plt.ylabel('Recall')
-# plt.title('Recall vs Number of Components (K)')
-# plt.legend()
-
-# plt.plot(f1[:,0],f1[:,1])
-# plt.rcParams["figure.figsize"] = (10,6)
-# plt.grid(1)
-# plt.xlabel('Number of Number of Components (K)')
-# plt.ylabel('F1-score')
-# plt.title('F1-score vs Number of Number of Components (K)')
-# plt.legend()
